@@ -29,7 +29,12 @@ class HTTPConnection : public std::enable_shared_from_this<HTTPConnection>
   boost::asio::ip::tcp::socket socket;
   boost::beast::flat_buffer buffer{8192};
   boost::beast::http::request<boost::beast::http::dynamic_body> request;
+
+#if BOOST_VERSION >= 107000
   boost::asio::steady_timer deadline{socket.get_executor(), std::chrono::seconds(60)};
+#else
+  boost::asio::steady_timer deadline{socket.get_io_context(), std::chrono::seconds(60)};
+#endif
 
 public:
 
