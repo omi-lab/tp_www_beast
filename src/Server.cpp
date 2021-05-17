@@ -28,7 +28,7 @@ class HTTPConnection : public std::enable_shared_from_this<HTTPConnection>
 
   boost::asio::ip::tcp::socket socket;
   boost::beast::flat_buffer buffer{8192};
-  boost::beast::http::request<boost::beast::http::dynamic_body> request;
+  boost::beast::http::request<boost::beast::http::string_body> request;
 
 #if BOOST_VERSION >= 107000
   boost::asio::steady_timer deadline{socket.get_executor(), std::chrono::seconds(60)};
@@ -94,17 +94,43 @@ public:
     std::ostringstream out;
     std::ostringstream err;
 
+    std::vector<std::string> parts;
+    tpSplit(parts, request.target().to_string(), '?', tp_utils::SplitBehavior::KeepEmptyParts);
+
     std::vector<std::string> route;
-    tpSplit(route, request.target().to_string(), '/', tp_utils::SplitBehavior::SkipEmptyParts);
+    if(!parts.empty())
+      tpSplit(route, parts.front(), '/', tp_utils::SplitBehavior::SkipEmptyParts);
+
+    std::unordered_map<std::string, std::string> getParams;
+    if(parts.size() == 2)
+    {
+      std::vector<std::string> urlParts;
+      tpSplit(urlParts, parts.at(1), '&', tp_utils::SplitBehavior::KeepEmptyParts);
+      for(const auto& urlPart : urlParts)
+      {
+        std::vector<std::string> argParts;
+        tpSplit(argParts, urlPart, '=', tp_utils::SplitBehavior::KeepEmptyParts);
+        if(!argParts.empty())
+        {
+          std::string key = argParts.front();
+          if(!key.empty())
+          {
+            std::string value;
+            if(argParts.size()==2)
+              value = argParts.at(1);
+
+            getParams[key] = value;
+          }
+        }
+      }
+    }
 
     tp_www::RequestType requestType = verbToRequestType(request.method());
 
-    std::string content;
     std::unordered_map<std::string, std::string> postParams;
-    std::unordered_map<std::string, std::string> getParams;
     std::unordered_map<std::string, tp_www::MultipartFormData> multipartFormData;
 
-    tp_www::Request wwwRequest(out, err, route, requestType, content, postParams, getParams, multipartFormData);
+    tp_www::Request wwwRequest(out, err, route, requestType, request.body(), postParams, getParams, multipartFormData);
 
     if(!root->handleRequest(wwwRequest, 0))
       wwwRequest.sendBinary(404, "text/html", "404 Not Found");
