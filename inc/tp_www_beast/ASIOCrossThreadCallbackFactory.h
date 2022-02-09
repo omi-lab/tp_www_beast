@@ -1,33 +1,26 @@
-#ifndef tp_www_beast_Server_h
-#define tp_www_beast_Server_h
+#ifndef tp_www_beast_ASIOCrossThreadCallbackFactory_h
+#define tp_www_beast_ASIOCrossThreadCallbackFactory_h
 
 #include "tp_www_beast/Globals.h"
 
 #include "tp_utils/AbstractCrossThreadCallback.h"
-
-namespace tp_www
-{
-class Route;
-}
 
 namespace tp_www_beast
 {
 class Context;
 
 //##################################################################################################
-class Server
+class ASIOCrossThreadCallbackFactory : public tp_utils::AbstractCrossThreadCallbackFactory
 {
 public:
   //################################################################################################
-  Server(Context* context, tp_www::Route* root, uint16_t port);
+  ASIOCrossThreadCallbackFactory(Context* context);
 
   //################################################################################################
-  ~Server();
+  [[nodiscard]] tp_utils::AbstractCrossThreadCallback* produce(const std::function<void()>& callback) const;
 
 private:
-  struct Private;
-  friend struct Private;
-  Private* d;
+  Context* m_context;
 };
 
 }

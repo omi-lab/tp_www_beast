@@ -1,4 +1,5 @@
 #include "tp_www_beast/Server.h"
+#include "tp_www_beast/Context.h"
 
 #include "tp_www/Route.h"
 #include "tp_www/Request.h"
@@ -13,6 +14,9 @@
 #include <boost/asio/connect.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/steady_timer.hpp>
+#include <boost/asio/signal_set.hpp>
+
+#include <boost/bind.hpp>
 
 #include <thread>
 
@@ -166,42 +170,23 @@ public:
 //##################################################################################################
 struct Server::Private
 {
-  Server* q;
+  Context* context;
   tp_www::Route* root;
+  uint16_t port;
 
-  boost::asio::io_context* ioc{new boost::asio::io_context(1)};
-  std::thread thread;
+  boost::asio::ip::address_v4 const address{boost::asio::ip::address_v4::any()};
+  boost::asio::ip::tcp::acceptor acceptor{*context->ioc(), {address, port}};
+  boost::asio::ip::tcp::socket socket{*context->ioc()};
 
   //################################################################################################
-  Private(Server* q_, tp_www::Route* root_):
-    q(q_),
+  Private(Context* context_, tp_www::Route* root_, uint16_t port_):
+    context(context_),
     root(root_),
-    thread([&]{run();})
-  {
-
-  }
-
-  //################################################################################################
-  ~Private()
-  {
-    ioc->stop();
-    thread.join();
-    delete ioc;
-  }
-
-  //################################################################################################
-  void run()
+    port(port_)
   {
     try
     {
-      auto const address = boost::asio::ip::address_v4::any();
-      unsigned short port = 8080;
-
-      boost::asio::ip::tcp::acceptor acceptor{*ioc, {address, port}};
-      boost::asio::ip::tcp::socket socket{*ioc};
-      httpServer(acceptor, socket);
-
-      ioc->run();
+      httpServer();
     }
     catch(const std::exception& e)
     {
@@ -211,20 +196,20 @@ struct Server::Private
 
   //################################################################################################
   // "Loop" forever accepting new connections.
-  void httpServer(boost::asio::ip::tcp::acceptor& acceptor, boost::asio::ip::tcp::socket& socket)
+  void httpServer()
   {
-    acceptor.async_accept(socket, [&](boost::beast::error_code ec)
+    acceptor.async_accept(socket, [this](boost::beast::error_code ec)
     {
       if(!ec)
         std::make_shared<HTTPConnection>(std::move(socket), root)->start();
-      httpServer(acceptor, socket);
+      httpServer();
     });
   }
 };
 
 //##################################################################################################
-Server::Server(tp_www::Route* root):
-  d(new Private(this, root))
+Server::Server(Context* context, tp_www::Route* root, uint16_t port):
+  d(new Private(context, root, port))
 {
 
 }
