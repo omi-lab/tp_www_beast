@@ -17,7 +17,6 @@ class Route;
 
 namespace tp_www_beast
 {
-class Context;
 
 //##################################################################################################
 class Context
