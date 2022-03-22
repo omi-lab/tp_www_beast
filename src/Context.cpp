@@ -5,7 +5,7 @@
 
 #include <boost/asio/signal_set.hpp>
 
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 
 #include <thread>
 
