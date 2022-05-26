@@ -34,6 +34,7 @@ class HTTPConnection : public std::enable_shared_from_this<HTTPConnection>
   boost::asio::ip::tcp::socket socket;
   boost::beast::flat_buffer buffer{8192};
   boost::beast::http::request<boost::beast::http::string_body> request;
+  std::string responseData;
 
 #if BOOST_VERSION >= 107000
   boost::asio::steady_timer deadline{socket.get_executor(), std::chrono::seconds(60)};
@@ -141,9 +142,9 @@ public:
       wwwRequest.sendBinary(404, "text/html", "404 Not Found");
 
     std::string status =  boost::beast::http::obsolete_reason(boost::beast::http::int_to_status(unsigned(wwwRequest.httpStatus()))).to_string();
-    std::string data = "HTTP/1.1 " + std::to_string(wwwRequest.httpStatus()) + ' ' + status + "\r\n" + out.str();
+    responseData = "HTTP/1.1 " + std::to_string(wwwRequest.httpStatus()) + ' ' + status + "\r\n" + out.str();
 
-    boost::asio::async_write(socket, boost::asio::buffer(data), [self](boost::beast::error_code ec, std::size_t)
+    boost::asio::async_write(socket, boost::asio::buffer(responseData), [self](boost::beast::error_code ec, std::size_t)
     {
       self->socket.shutdown(boost::asio::ip::tcp::socket::shutdown_send, ec);
       self->deadline.cancel();
