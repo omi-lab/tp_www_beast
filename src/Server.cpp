@@ -20,6 +20,10 @@
 
 #include <thread>
 
+#ifdef DELETE
+  #undef DELETE
+#endif
+
 namespace tp_www_beast
 {
 
