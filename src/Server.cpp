@@ -4,7 +4,6 @@
 #include "tp_www/Route.h"
 #include "tp_www/Request.h"
 
-#include "tp_utils/CallbackCollection.h"
 #include "tp_utils/DebugUtils.h"
 
 #include <boost/beast/core.hpp>
@@ -105,7 +104,12 @@ public:
     std::ostringstream err;
 
     std::vector<std::string> parts;
+
+#if BOOST_VERSION >= 108200
+    tpSplit(parts, request.target(), '?', tp_utils::SplitBehavior::KeepEmptyParts);
+#else
     tpSplit(parts, request.target().to_string(), '?', tp_utils::SplitBehavior::KeepEmptyParts);
+#endif
 
     std::vector<std::string> route;
     if(!parts.empty())
@@ -145,7 +149,11 @@ public:
     if(!root->handleRequest(wwwRequest, 0))
       wwwRequest.sendBinary(404, "text/html", "404 Not Found");
 
+#if BOOST_VERSION >= 108200
+    std::string status =  boost::beast::http::obsolete_reason(boost::beast::http::int_to_status(unsigned(wwwRequest.httpStatus())));
+#else
     std::string status =  boost::beast::http::obsolete_reason(boost::beast::http::int_to_status(unsigned(wwwRequest.httpStatus()))).to_string();
+#endif
     responseData = "HTTP/1.1 " + std::to_string(wwwRequest.httpStatus()) + ' ' + status + "\r\n" + out.str();
 
     boost::asio::async_write(socket, boost::asio::buffer(responseData), [self](boost::beast::error_code ec, std::size_t)
