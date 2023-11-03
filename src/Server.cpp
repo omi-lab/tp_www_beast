@@ -106,24 +106,24 @@ public:
     std::vector<std::string> parts;
 
 #if BOOST_VERSION >= 108200
-    tpSplit(parts, request.target(), '?', tp_utils::SplitBehavior::KeepEmptyParts);
+    tpSplit(parts, request.target(), '?', TPSplitBehavior::KeepEmptyParts);
 #else
-    tpSplit(parts, request.target().to_string(), '?', tp_utils::SplitBehavior::KeepEmptyParts);
+    tpSplit(parts, request.target().to_string(), '?', TPSplitBehavior::KeepEmptyParts);
 #endif
 
     std::vector<std::string> route;
     if(!parts.empty())
-      tpSplit(route, parts.front(), '/', tp_utils::SplitBehavior::SkipEmptyParts);
+      tpSplit(route, parts.front(), '/', TPSplitBehavior::SkipEmptyParts);
 
     std::unordered_map<std::string, std::string> getParams;
     if(parts.size() == 2)
     {
       std::vector<std::string> urlParts;
-      tpSplit(urlParts, parts.at(1), '&', tp_utils::SplitBehavior::KeepEmptyParts);
+      tpSplit(urlParts, parts.at(1), '&', TPSplitBehavior::KeepEmptyParts);
       for(const auto& urlPart : urlParts)
       {
         std::vector<std::string> argParts;
-        tpSplit(argParts, urlPart, '=', tp_utils::SplitBehavior::KeepEmptyParts);
+        tpSplit(argParts, urlPart, '=', TPSplitBehavior::KeepEmptyParts);
         if(!argParts.empty())
         {
           std::string key = argParts.front();
