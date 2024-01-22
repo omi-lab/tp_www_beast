@@ -25,11 +25,17 @@ public:
   //################################################################################################
   void call() override
   {
-    boost::asio::post(*m_context->ioc(), [&]{callback();});
+    std::weak_ptr<int> weak=m_exists;
+    boost::asio::post(*m_context->ioc(), [&, weak]
+    {
+      if(!weak.expired())
+        callback();
+    });
   }
 
 private:
   Context* m_context;
+  std::shared_ptr<int> m_exists{std::make_shared<int>(0)};
 };
 }
 
