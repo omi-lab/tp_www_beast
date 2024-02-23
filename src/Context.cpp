@@ -17,6 +17,7 @@ struct Context::Private
 {
   bool runInThread;
   boost::asio::io_context* ioc{new boost::asio::io_context(1)};
+  boost::asio::io_context* iocMain{new boost::asio::io_context(1)};
   std::thread thread;
 
   std::unique_ptr<ASIOCrossThreadCallbackFactory> crossThreadCallbackFactory;
@@ -25,8 +26,6 @@ struct Context::Private
   Private(bool runInThread_):
     runInThread(runInThread_)
   {
-    if(runInThread)
-      thread = std::thread([&]{run();});
   }
 
   //################################################################################################
@@ -38,6 +37,7 @@ struct Context::Private
       thread.join();
     }
     delete ioc;
+    delete iocMain;
   }
 
   //################################################################################################
@@ -54,10 +54,24 @@ struct Context::Private
   }
 
   //################################################################################################
+  void runMain()
+  {
+    try
+    {
+      iocMain->run();
+    }
+    catch(const std::exception& e)
+    {
+      tpWarning() << "Error: " << e.what();
+    }
+  }
+
+  //################################################################################################
   void signalHandler(const boost::system::error_code&, int signalNumber)
   {
     tpWarning() << "\nSignal caught " << signalNumber;
     ioc->stop();
+    iocMain->stop();
   }
 };
 
@@ -81,6 +95,15 @@ boost::asio::io_context* Context::ioc()
 }
 
 //##################################################################################################
+boost::asio::io_context* Context::iocMain()
+{
+  if(d->runInThread)
+    return d->iocMain;
+  else
+    return d->ioc;
+}
+
+//##################################################################################################
 tp_utils::AbstractCrossThreadCallbackFactory* Context::crossThreadCallbackFactory() const
 {
   return d->crossThreadCallbackFactory.get();
@@ -89,14 +112,19 @@ tp_utils::AbstractCrossThreadCallbackFactory* Context::crossThreadCallbackFactor
 //##################################################################################################
 void Context::waitCtrlC()
 {
+  if(d->runInThread)
+    d->thread = std::thread([&]{d->run();});
+
+  auto ioc = iocMain();
+
 #ifdef TP_WIN32_MSVC
-  boost::asio::signal_set waitSignals(*d->ioc, SIGINT, SIGTERM);
+  boost::asio::signal_set waitSignals(*ioc, SIGINT, SIGTERM);
 #else
-  boost::asio::signal_set waitSignals(*d->ioc, SIGINT, SIGTERM, SIGABRT);
+  boost::asio::signal_set waitSignals(*ioc, SIGINT, SIGTERM, SIGABRT);
 #endif
 
-  waitSignals.async_wait(boost::bind(&boost::asio::io_context::stop, d->ioc));
-  d->run();
+  waitSignals.async_wait(boost::bind(&boost::asio::io_context::stop, ioc));
+  d->runMain();
 }
 
 }

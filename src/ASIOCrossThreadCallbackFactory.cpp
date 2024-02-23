@@ -26,7 +26,7 @@ public:
   void call() override
   {
     std::weak_ptr<int> weak=m_exists;
-    boost::asio::post(*m_context->ioc(), [&, weak]
+    boost::asio::post(*m_context->iocMain(), [&, weak]
     {
       if(!weak.expired())
         callback();
