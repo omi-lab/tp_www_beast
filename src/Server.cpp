@@ -36,7 +36,7 @@ class HTTPConnection : public std::enable_shared_from_this<HTTPConnection>
 
   boost::asio::ip::tcp::socket socket;
   boost::beast::flat_buffer buffer{8192};
-  boost::beast::http::request<boost::beast::http::string_body> request;
+  boost::beast::http::request_parser<boost::beast::http::string_body> requestParser;
   std::string responseData;
 
 #if BOOST_VERSION >= 107000
@@ -52,6 +52,7 @@ public:
     root(root_),
     socket(std::move(socket_))
   {
+    requestParser.body_limit(4096ull * 1024 * 1024);
   }
 
   //################################################################################################
@@ -68,11 +69,17 @@ public:
   {
     auto self = shared_from_this();
 
-    boost::beast::http::async_read(socket, buffer, request, [self](boost::beast::error_code ec, std::size_t bytes_transferred)
+    boost::beast::http::async_read(socket, buffer, requestParser, [self](boost::beast::error_code ec, std::size_t bytes_transferred)
     {
       boost::ignore_unused(bytes_transferred);
       if(!ec)
         self->processRequest();
+      else
+      {
+        tpWarning() << "Error reading request: " << ec.message();
+        self->socket.shutdown(boost::asio::ip::tcp::socket::shutdown_send, ec);
+        self->deadline.cancel();
+      }
     });
   }
 
@@ -106,9 +113,9 @@ public:
     std::vector<std::string> parts;
 
 #if BOOST_VERSION >= 108200
-    tpSplit(parts, request.target(), '?', TPSplitBehavior::KeepEmptyParts);
+    tpSplit(parts, requestParser.get().target(), '?', TPSplitBehavior::KeepEmptyParts);
 #else
-    tpSplit(parts, request.target().to_string(), '?', TPSplitBehavior::KeepEmptyParts);
+    tpSplit(parts, requestParser.get().target().to_string(), '?', TPSplitBehavior::KeepEmptyParts);
 #endif
 
     std::vector<std::string> route;
@@ -139,12 +146,12 @@ public:
       }
     }
 
-    tp_www::RequestType requestType = verbToRequestType(request.method());
+    tp_www::RequestType requestType = verbToRequestType(requestParser.get().method());
 
     std::unordered_map<std::string, std::string> postParams;
     std::unordered_map<std::string, tp_www::MultipartFormData> multipartFormData;
 
-    tp_www::Request wwwRequest(out, err, route, requestType, request.body(), postParams, getParams, multipartFormData);
+    tp_www::Request wwwRequest(out, err, route, requestType, requestParser.get().body(), postParams, getParams, multipartFormData);
 
     if(!root->handleRequest(wwwRequest, 0))
       wwwRequest.sendBinary(404, "text/html", "404 Not Found");
