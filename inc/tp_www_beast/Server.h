@@ -3,8 +3,6 @@
 
 #include "tp_www_beast/Globals.h"
 
-#include "tp_utils/AbstractCrossThreadCallback.h"
-
 namespace tp_www
 {
 class Route;
@@ -15,19 +13,15 @@ namespace tp_www_beast
 class Context;
 
 //##################################################################################################
-class Server
+class TP_WWW_BEAST_EXPORT Server
 {
+  TP_DQ;
 public:
   //################################################################################################
   Server(Context* context, tp_www::Route* root, uint16_t port);
 
   //################################################################################################
   ~Server();
-
-private:
-  struct Private;
-  friend struct Private;
-  Private* d;
 };
 
 }

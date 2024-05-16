@@ -10,7 +10,7 @@ namespace tp_www_beast
 class Context;
 
 //##################################################################################################
-class ASIOCrossThreadCallbackFactory : public tp_utils::AbstractCrossThreadCallbackFactory
+class TP_WWW_BEAST_EXPORT ASIOCrossThreadCallbackFactory : public tp_utils::AbstractCrossThreadCallbackFactory
 {
 public:
   //################################################################################################

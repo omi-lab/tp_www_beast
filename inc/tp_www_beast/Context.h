@@ -19,8 +19,9 @@ namespace tp_www_beast
 {
 
 //##################################################################################################
-class Context
+class TP_WWW_BEAST_EXPORT Context
 {
+  TP_DQ;
 public:
   //################################################################################################
   Context(bool runInThread);
@@ -39,11 +40,6 @@ public:
 
   //################################################################################################
   void waitCtrlC();
-
-private:
-  struct Private;
-  friend struct Private;
-  Private* d;
 };
 
 }
