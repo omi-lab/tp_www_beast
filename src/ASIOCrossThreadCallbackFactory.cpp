@@ -1,6 +1,10 @@
 #include "tp_www_beast/ASIOCrossThreadCallbackFactory.h"
 #include "tp_www_beast/Context.h"
 
+#include "tp_utils/TimeUtils.h"
+#include "tp_utils/DebugUtils.h"
+
+
 #include <boost/asio/post.hpp>
 #include <boost/asio/io_context.hpp>
 
@@ -28,6 +32,16 @@ public:
     std::weak_ptr<int> weak=m_exists;
     boost::asio::post(*m_context->iocMain(), [&, weak]
     {
+#if 1
+      tp_utils::ElapsedTimer t;
+      t.start();
+      TP_CLEANUP([&]
+      {
+        if(auto e=t.elapsed(); e>100)
+          tpWarning() << "ASIOCrossThreadCallback: " << e;
+      });
+#endif
+
       if(!weak.expired())
         callback();
     });
