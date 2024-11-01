@@ -16,6 +16,7 @@ namespace tp_www_beast
 struct Context::Private
 {
   bool runInThread;
+
   boost::asio::io_context* ioc{new boost::asio::io_context(1)};
   boost::asio::io_context* iocMain{new boost::asio::io_context(1)};
   std::thread thread;
@@ -31,11 +32,6 @@ struct Context::Private
   //################################################################################################
   ~Private()
   {
-    if(runInThread)
-    {
-      ioc->stop();
-      thread.join();
-    }
     delete ioc;
     delete iocMain;
   }
@@ -69,7 +65,12 @@ struct Context::Private
   //################################################################################################
   void signalHandler(const boost::system::error_code&, int signalNumber)
   {
-    tpWarning() << "\nSignal caught " << signalNumber;
+#ifdef TP_LINUX
+    tpWarning() << "Signal caught: " << signalNumber << " (" << strsignal(signalNumber) << ')';
+#else
+    tpWarning() << "Signal caught: " << signalNumber;
+#endif
+
     ioc->stop();
     iocMain->stop();
   }
@@ -86,6 +87,14 @@ Context::Context(bool runInThread):
 Context::~Context()
 {
   delete d;
+}
+
+//##################################################################################################
+void Context::stop()
+{
+  tpWarning() << "Context::stop() called.";
+  d->ioc->stop();
+  d->iocMain->stop();
 }
 
 //##################################################################################################
@@ -117,14 +126,25 @@ void Context::waitCtrlC()
 
   auto ioc = iocMain();
 
+  auto signalHandler = [this](const boost::system::error_code& ec, int signalNumber)
+  {
+    d->signalHandler(ec, signalNumber);
+  };
+
 #ifdef TP_WIN32_MSVC
   boost::asio::signal_set waitSignals(*ioc, SIGINT, SIGTERM);
 #else
   boost::asio::signal_set waitSignals(*ioc, SIGINT, SIGTERM, SIGABRT);
 #endif
 
-  waitSignals.async_wait(boost::bind(&boost::asio::io_context::stop, ioc));
+  waitSignals.async_wait(signalHandler);
   d->runMain();
+
+  if(d->runInThread)
+  {
+    d->ioc->stop();
+    d->thread.join();
+  }
 }
 
 }
