@@ -69,7 +69,7 @@ public:
   {
     auto self = shared_from_this();
 
-    boost::beast::http::async_read(socket, buffer, requestParser, [self](boost::beast::error_code ec, std::size_t bytes_transferred)
+    boost::beast::http::async_read(socket, buffer, requestParser, [self](boost::beast::error_code ec, size_t bytes_transferred)
     {
       boost::ignore_unused(bytes_transferred);
       if(!ec)
@@ -163,7 +163,7 @@ public:
 #endif
     responseData = "HTTP/1.1 " + std::to_string(wwwRequest.httpStatus()) + ' ' + status + "\r\n" + out.str();
 
-    boost::asio::async_write(socket, boost::asio::buffer(responseData), [self](boost::beast::error_code ec, std::size_t)
+    boost::asio::async_write(socket, boost::asio::buffer(responseData), [self](boost::beast::error_code ec, size_t)
     {
       self->socket.shutdown(boost::asio::ip::tcp::socket::shutdown_send, ec);
       self->deadline.cancel();
