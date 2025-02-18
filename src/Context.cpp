@@ -5,8 +5,6 @@
 
 #include <boost/asio/signal_set.hpp>
 
-#include <boost/bind/bind.hpp>
-
 #include <thread>
 
 namespace tp_www_beast

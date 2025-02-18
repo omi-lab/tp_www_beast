@@ -15,12 +15,10 @@
 #include <boost/asio/steady_timer.hpp>
 #include <boost/asio/signal_set.hpp>
 
-#include <boost/bind/bind.hpp>
-
 #include <thread>
 
 #ifdef DELETE
-  #undef DELETE
+#undef DELETE
 #endif
 
 namespace tp_www_beast
