@@ -16,8 +16,9 @@ public:
   //################################################################################################
   ASIOCrossThreadCallbackFactory(Context* context);
 
+protected:
   //################################################################################################
-  [[nodiscard]] tp_utils::AbstractCrossThreadCallback* produce(const std::function<void()>& callback) const;
+  [[nodiscard]] tp_utils::AbstractCrossThreadCallback* produce(const std::function<void()>& callback) const override;
 
 private:
   Context* m_context;
